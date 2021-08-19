@@ -41,6 +41,8 @@ public:
     ros::Publisher pos_pub[2];    
     ros::Publisher cmd_pub[2];
     ros::Publisher voltage_pub;
+    ros::Publisher left_curr_pub;
+    ros::Publisher right_curr_pub;
     ros::Publisher temp_pub;
 
     double wheel_radius;

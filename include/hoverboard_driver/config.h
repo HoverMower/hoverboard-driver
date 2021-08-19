@@ -1,6 +1,6 @@
 #pragma once
 
-#define PORT "/dev/serial0"
+#define PORT "/dev/ttyTHS1"
 #define DIRECTION_CORRECTION 1
 
 #define ENCODER_MIN 0

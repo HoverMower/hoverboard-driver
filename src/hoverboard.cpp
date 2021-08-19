@@ -40,8 +40,8 @@ Hoverboard::Hoverboard()
     cmd_pub[1] = nh.advertise<std_msgs::Float64>("hoverboard/right_wheel/cmd", 3);
     voltage_pub = nh.advertise<std_msgs::Float64>("hoverboard/battery_voltage", 3);
     temp_pub = nh.advertise<std_msgs::Float64>("hoverboard/temperature", 3);
-    left_curr_pub = nh.advertise<std_msgs::Float64>("hoverboard/left_dc_current", 3);
-    right_curr_pub = nh.advertise<std_msgs::Float64>("hoverboard/right_dc_current", 3);
+    left_curr_pub = nh.advertise<std_msgs::Float64>("hoverboard/left_wheel/dc_current", 3);
+    right_curr_pub = nh.advertise<std_msgs::Float64>("hoverboard/right_wheel/dc_current", 3);
 
     std::size_t error = 0;
     error += !rosparam_shortcuts::get("hoverboard_driver", nh, "hoverboard_velocity_controller/wheel_radius", wheel_radius);
