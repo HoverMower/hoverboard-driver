@@ -5,6 +5,7 @@
 #include <hardware_interface/robot_hw.h>
 #include <realtime_tools/realtime_buffer.h>
 #include <std_msgs/Float64.h>
+#include <std_msgs/Bool.h>
 #include <dynamic_reconfigure/server.h>
 #include "hoverboard_driver/HoverboardConfig.h"
 #include "hoverboard_driver/pid.h"
@@ -44,6 +45,7 @@ public:
     ros::Publisher left_curr_pub;
     ros::Publisher right_curr_pub;
     ros::Publisher temp_pub;
+    ros::Publisher connected_pub;
 
     double wheel_radius;
     double max_velocity = 0.0;

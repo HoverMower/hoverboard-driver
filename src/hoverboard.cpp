@@ -32,6 +32,7 @@ Hoverboard::Hoverboard()
     registerInterface(&velocity_joint_interface);
 
     // These publishers are only for debugging purposes
+
     vel_pub[0] = nh.advertise<std_msgs::Float64>("hoverboard/left_wheel/velocity", 3);
     vel_pub[1] = nh.advertise<std_msgs::Float64>("hoverboard/right_wheel/velocity", 3);
     pos_pub[0] = nh.advertise<std_msgs::Float64>("hoverboard/left_wheel/position", 3);
@@ -42,6 +43,8 @@ Hoverboard::Hoverboard()
     temp_pub = nh.advertise<std_msgs::Float64>("hoverboard/temperature", 3);
     left_curr_pub = nh.advertise<std_msgs::Float64>("hoverboard/left_wheel/dc_current", 3);
     right_curr_pub = nh.advertise<std_msgs::Float64>("hoverboard/right_wheel/dc_current", 3);
+    connected_pub = nh.advertise<std_msgs::Bool>("hoverboard/connected", 3);
+
 
     std::size_t error = 0;
     error += !rosparam_shortcuts::get("hoverboard_driver", nh, "hoverboard_velocity_controller/wheel_radius", wheel_radius);
@@ -108,12 +111,21 @@ void Hoverboard::read()
     if ((ros::Time::now() - last_read).toSec() > 1)
     {
         ROS_FATAL("Timeout reading from serial %s failed", PORT);
-    }
+        
+        //publish false when not receiving serial data
+        std_msgs::Bool b;
+        b.data = false;
+        connected_pub.publish(b);
+    } else {
+		//we must be connected - publish true
+        std_msgs::Bool b;
+        b.data = true;
+        connected_pub.publish(b);
+	}
 }
 
-void Hoverboard::protocol_recv(char byte)
-{
-    start_frame = ((uint16_t)(byte) << 8) | prev_byte;
+void Hoverboard::protocol_recv (char byte) {
+    start_frame = ((uint16_t)(byte) << 8) | (uint8_t)prev_byte;
 
     // Read the start frame
     if (start_frame == START_FRAME)
