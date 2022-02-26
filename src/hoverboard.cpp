@@ -121,10 +121,16 @@ void Hoverboard::read()
     }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     if ((ros::Time::now() - last_read).toSec() > 1)
     {
         ROS_FATAL("Timeout reading from serial %s failed", PORT);
         
+=======
+    if ((ros::Time::now() - last_read).toSec() > 1) {
+     //   ROS_FATAL("Timeout reading from serial %s failed", port.c_str());
+
+>>>>>>> merge
         //publish false when not receiving serial data
         std_msgs::Bool b;
         b.data = false;
