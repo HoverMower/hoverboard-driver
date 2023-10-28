@@ -107,8 +107,8 @@ namespace hoverboard_driver
     }
 
     // // BEGIN: This part here is for exemplary purposes - Please do not copy to your production code
-    // hw_start_sec_ = std::stod(info_.hardware_parameters["example_param_hw_start_duration_sec"]);
-    // hw_stop_sec_ = std::stod(info_.hardware_parameters["example_param_hw_stop_duration_sec"]);
+    //wheel_radius = params_.wheel_radius;//std::stod(info_.hardware_parameters["wheel_radius"]);
+    //max_velocity = params_.linear.x.max_velocity;//std::stod(info_.hardware_parameters["max_velocity"]);
     // // END: This part here is for exemplary purposes - Please do not copy to your production code
     hw_positions_.resize(info_.joints.size(), std::numeric_limits<double>::quiet_NaN());
     hw_velocities_.resize(info_.joints.size(), std::numeric_limits<double>::quiet_NaN());
@@ -208,20 +208,22 @@ namespace hoverboard_driver
     //}
 
     // Convert m/s to rad/s
-    ////max_velocity /= wheel_radius;
+    //max_velocity /= wheel_radius;
 
     low_wrap = ENCODER_LOW_WRAP_FACTOR * (ENCODER_MAX - ENCODER_MIN) + ENCODER_MIN;
     high_wrap = ENCODER_HIGH_WRAP_FACTOR * (ENCODER_MAX - ENCODER_MIN) + ENCODER_MIN;
     last_wheelcountR = last_wheelcountL = 0;
     multR = multL = 0;
 
+    first_read_pass_ = true;
+
     // ros::NodeHandle nh_left(nh, "pid/left");
     // ros::NodeHandle nh_right(nh, "pid/right");
     //  Init PID controller
-     pids[0].init(1.0, 0.0, 0.0, 0.01, 1.5, -1.5, true, info_.joints[0].linear.x.max_velocity, -max_velocity);
-     pids[0].setOutputLimits(-max_velocity, max_velocity);
-     pids[1].init(1.0, 0.0, 0.0, 0.01, 1.5, -1.5, true, max_velocity, -max_velocity);
-     pids[1].setOutputLimits(-max_velocity, max_velocity);
+    // pids[0].init(1.0, 0.0, 0.0, 0.01, 1.5, -1.5, true, max_velocity, -max_velocity);
+    // pids[0].setOutputLimits(-max_velocity, max_velocity);
+    // pids[1].init(1.0, 0.0, 0.0, 0.01, 1.5, -1.5, true, max_velocity, -max_velocity);
+    // pids[1].setOutputLimits(-max_velocity, max_velocity);
 
     if ((port_fd = open(port.c_str(), O_RDWR | O_NOCTTY | O_NDELAY)) < 0)
     {
@@ -259,6 +261,13 @@ namespace hoverboard_driver
   hardware_interface::return_type hoverboard_driver::read(
       const rclcpp::Time &time, const rclcpp::Duration &period)
   {
+    // to be able to compare times, we need to set last_read time to a correct time source
+    // set the actual time as last_read, when it hasn't been set before (first attempt to read from harware)
+    if (first_read_pass_ == true){
+      last_read = time;
+      first_read_pass_ = false;
+    }
+
     if (port_fd != -1)
     {
       unsigned char c;

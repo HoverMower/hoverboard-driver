@@ -51,14 +51,14 @@ install(
   DIRECTORY hardware/include/
   DESTINATION include/hoverboard_driver 
 )
-#install(
- # DIRECTORY description/launch description/ros2_control description/urdf
- # DESTINATION share/hoverboard_driver 
-#)
-#install(
-#  DIRECTORY bringup/launch bringup/config
-#  DESTINATION share/hoverboard_driver 
-#)
+install(
+  DIRECTORY description/launch description/ros2_control description/urdf
+  DESTINATION share/hoverboard_driver 
+)
+install(
+  DIRECTORY bringup/launch bringup/config
+  DESTINATION share/hoverboard_driver 
+)
 install(TARGETS hoverboard_driver 
   EXPORT export_hoverboard_driver 
   ARCHIVE DESTINATION lib

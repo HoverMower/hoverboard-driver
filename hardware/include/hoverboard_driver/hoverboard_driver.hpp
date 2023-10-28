@@ -103,12 +103,13 @@ namespace hoverboard_driver
     void protocol_recv(const rclcpp::Time &time,char c);
     void on_encoder_update(const rclcpp::Time &time,int16_t right, int16_t left);
 
-    //double wheel_radius;
-    //double max_velocity = 0.0;
+    double wheel_radius;
+    double max_velocity = 0.0;
     int direction_correction = 1;
     std::string port;
 
     rclcpp::Time last_read;
+    bool first_read_pass_;
     // Last known encoder values
     int16_t last_wheelcountR;
     int16_t last_wheelcountL;
