@@ -30,7 +30,7 @@
 namespace hoverboard_driver
 {
 
-  hoverboard_driver_publisher::hoverboard_driver_publisher() : Node("hoverboard_driver_publisher")
+  hoverboard_driver_node::hoverboard_driver_node() : Node("hoverboard_driver_node")
   {
     // These publishers are only for debugging purposes
 
@@ -45,55 +45,125 @@ namespace hoverboard_driver
     curr_pub[left_wheel] = this->create_publisher<std_msgs::msg::Float64>("hoverboard/left_wheel/dc_current", 3);
     curr_pub[right_wheel] = this->create_publisher<std_msgs::msg::Float64>("hoverboard/right_wheel/dc_current", 3);
     connected_pub = this->create_publisher<std_msgs::msg::Bool>("hoverboard/connected", 3);
+
+    declare_parameter("f", 10.2);
+    declare_parameter("p", 1.0);
+    declare_parameter("i", 0.1);
+    declare_parameter("d", 1.0);
+    declare_parameter("i_clamp_min", -10.0);
+    declare_parameter("i_clamp_max", 10.0);
+    declare_parameter("antiwindup", false);
+    get_parameter("f", pid_config.f);
+    get_parameter("p", pid_config.p);
+    get_parameter("i", pid_config.i);
+    get_parameter("d", pid_config.d);
+    get_parameter("i_clamp_min", pid_config.i_clamp_min);
+    get_parameter("i_clamp_max", pid_config.i_clamp_max);
+    get_parameter("antiwindup", pid_config.antiwindup);
+
+    // register parameter change callback handle
+    callback_handle_ = this->add_on_set_parameters_callback(
+        std::bind(&hoverboard_driver_node::parametersCallback, this, std::placeholders::_1));
   }
 
-  void hoverboard_driver_publisher::publish_vel(int wheel, double message)
+  void hoverboard_driver_node::publish_vel(int wheel, double message)
   {
     std_msgs::msg::Float64 f;
     f.data = message;
     vel_pub[wheel]->publish(f);
   }
 
-  void hoverboard_driver_publisher::publish_pos(int wheel, double message)
+  void hoverboard_driver_node::publish_pos(int wheel, double message)
   {
     std_msgs::msg::Float64 f;
     f.data = message;
     pos_pub[wheel]->publish(f);
   }
 
-  void hoverboard_driver_publisher::publish_cmd(int wheel, double message)
+  void hoverboard_driver_node::publish_cmd(int wheel, double message)
   {
     std_msgs::msg::Float64 f;
     f.data = message;
     cmd_pub[wheel]->publish(f);
   }
 
-  void hoverboard_driver_publisher::publish_curr(int wheel, double message)
+  void hoverboard_driver_node::publish_curr(int wheel, double message)
   {
     std_msgs::msg::Float64 f;
     f.data = message;
     curr_pub[wheel]->publish(f);
   }
 
-  void hoverboard_driver_publisher::publish_voltage(double message)
+  void hoverboard_driver_node::publish_voltage(double message)
   {
     std_msgs::msg::Float64 f;
     f.data = message;
     voltage_pub->publish(f);
   }
 
-  void hoverboard_driver_publisher::publish_temp(double message)
+  void hoverboard_driver_node::publish_temp(double message)
   {
     std_msgs::msg::Float64 f;
     f.data = message;
     temp_pub->publish(f);
   }
 
-  void hoverboard_driver_publisher::publish_connected(bool message)
+  void hoverboard_driver_node::publish_connected(bool message)
   {
     std_msgs::msg::Bool f;
     f.data = message;
     connected_pub->publish(f);
+  }
+
+  rcl_interfaces::msg::SetParametersResult hoverboard_driver_node::parametersCallback(
+      const std::vector<rclcpp::Parameter> &parameters)
+  {
+    rcl_interfaces::msg::SetParametersResult result;
+    result.successful = true;
+    result.reason = "success";
+    // Here update class attributes, do some actions, etc.
+    for (const auto &param : parameters)
+    {
+      if (param.get_name() == "p")
+      {
+        pid_config.p = param.as_double();
+        RCLCPP_INFO(get_logger(), "new value for PID P: %f", pid_config.p);
+      }
+      if (param.get_name() == "i")
+      {
+        pid_config.i = param.as_double();
+        RCLCPP_INFO(get_logger(), "new value for PID I: %f", pid_config.i);
+      }
+      if (param.get_name() == "d")
+      {
+        pid_config.d = param.as_double();
+        RCLCPP_INFO(get_logger(), "new value for PID D: %f", pid_config.d);
+      }
+      if (param.get_name() == "f")
+      {
+        pid_config.p = param.as_double();
+        RCLCPP_INFO(get_logger(), "new value for PID F: %f", pid_config.f);
+      }
+      if (param.get_name() == "i_clamp_min")
+      {
+        pid_config.i_clamp_min = param.as_double();
+        RCLCPP_INFO(get_logger(), "new value for PID I_CLAMP_MIN: %f", pid_config.i_clamp_min);
+      }
+      if (param.get_name() == "i_clamp_max")
+      {
+        pid_config.i_clamp_max = param.as_double();
+        RCLCPP_INFO(get_logger(), "new value for PID I_CLAMP_MAX: %f", pid_config.i_clamp_max);
+      }
+      if (param.get_name() == "antiwindup")
+      {
+        pid_config.antiwindup = param.as_bool();
+        RCLCPP_INFO(get_logger(), "new value for PID ANTIWINDUP: %i", pid_config.antiwindup);
+      }
+
+      // HINT: the PID configuration itself will be set by timer callback of hoverboard_driver class
+    }
+
+    return result;
   }
 
   hardware_interface::CallbackReturn hoverboard_driver::on_init(
@@ -106,10 +176,9 @@ namespace hoverboard_driver
       return hardware_interface::CallbackReturn::ERROR;
     }
 
-    // // BEGIN: This part here is for exemplary purposes - Please do not copy to your production code
-    //wheel_radius = params_.wheel_radius;//std::stod(info_.hardware_parameters["wheel_radius"]);
-    //max_velocity = params_.linear.x.max_velocity;//std::stod(info_.hardware_parameters["max_velocity"]);
-    // // END: This part here is for exemplary purposes - Please do not copy to your production code
+    wheel_radius = std::stod(info_.hardware_parameters["wheel_radius"]);
+    max_velocity = std::stod(info_.hardware_parameters["max_velocity"]);
+    port = std::stod(info_.hardware_parameters["device"]);
     hw_positions_.resize(info_.joints.size(), std::numeric_limits<double>::quiet_NaN());
     hw_velocities_.resize(info_.joints.size(), std::numeric_limits<double>::quiet_NaN());
     hw_commands_.resize(info_.joints.size(), std::numeric_limits<double>::quiet_NaN());
@@ -163,7 +232,7 @@ namespace hoverboard_driver
       }
     }
 
-    hardware_publisher = std::make_shared<hoverboard_driver_publisher>(); // fire up the publisher node
+    hardware_publisher = std::make_shared<hoverboard_driver_node>(); // fire up the publisher node
 
     return hardware_interface::CallbackReturn::SUCCESS;
   }
@@ -197,18 +266,11 @@ namespace hoverboard_driver
   hardware_interface::CallbackReturn hoverboard_driver::on_activate(
       const rclcpp_lifecycle::State & /*previous_state*/)
   {
-    // if (!rosparam_shortcuts::get("hoverboard_driver", nh, "port", port))
-    //{
-    port = DEFAULT_PORT;
-    // ROS_WARN("Port is not set in config, using default %s", port.c_str());
-    // }
-    // else
-    //{
+
     RCLCPP_INFO(rclcpp::get_logger("hoverboard_driver"), "Using port %s", port.c_str());
-    //}
 
     // Convert m/s to rad/s
-    //max_velocity /= wheel_radius;
+    max_velocity /= wheel_radius;
 
     low_wrap = ENCODER_LOW_WRAP_FACTOR * (ENCODER_MAX - ENCODER_MIN) + ENCODER_MIN;
     high_wrap = ENCODER_HIGH_WRAP_FACTOR * (ENCODER_MAX - ENCODER_MIN) + ENCODER_MIN;
@@ -217,13 +279,17 @@ namespace hoverboard_driver
 
     first_read_pass_ = true;
 
-    // ros::NodeHandle nh_left(nh, "pid/left");
-    // ros::NodeHandle nh_right(nh, "pid/right");
     //  Init PID controller
-    // pids[0].init(1.0, 0.0, 0.0, 0.01, 1.5, -1.5, true, max_velocity, -max_velocity);
-    // pids[0].setOutputLimits(-max_velocity, max_velocity);
-    // pids[1].init(1.0, 0.0, 0.0, 0.01, 1.5, -1.5, true, max_velocity, -max_velocity);
-    // pids[1].setOutputLimits(-max_velocity, max_velocity);
+    pids[0].init(hardware_publisher->pid_config.f, hardware_publisher->pid_config.p,
+                 hardware_publisher->pid_config.i, hardware_publisher->pid_config.d,
+                 hardware_publisher->pid_config.i_clamp_max, hardware_publisher->pid_config.i_clamp_min,
+                 hardware_publisher->pid_config.antiwindup, max_velocity, -max_velocity);
+    pids[0].setOutputLimits(-max_velocity, max_velocity);
+    pids[1].init(hardware_publisher->pid_config.f, hardware_publisher->pid_config.p,
+                 hardware_publisher->pid_config.i, hardware_publisher->pid_config.d,
+                 hardware_publisher->pid_config.i_clamp_max, hardware_publisher->pid_config.i_clamp_min,
+                 hardware_publisher->pid_config.antiwindup, max_velocity, -max_velocity);
+    pids[1].setOutputLimits(-max_velocity, max_velocity);
 
     if ((port_fd = open(port.c_str(), O_RDWR | O_NOCTTY | O_NDELAY)) < 0)
     {
@@ -263,7 +329,8 @@ namespace hoverboard_driver
   {
     // to be able to compare times, we need to set last_read time to a correct time source
     // set the actual time as last_read, when it hasn't been set before (first attempt to read from harware)
-    if (first_read_pass_ == true){
+    if (first_read_pass_ == true)
+    {
       last_read = time;
       first_read_pass_ = false;
     }
@@ -274,7 +341,7 @@ namespace hoverboard_driver
       int i = 0, r = 0;
 
       while ((r = ::read(port_fd, &c, 1)) > 0 && i++ < 1024)
-        protocol_recv(time,c);
+        protocol_recv(time, c);
 
       if (i > 0)
         last_read = time;
@@ -335,7 +402,8 @@ namespace hoverboard_driver
       if (msg.start == START_FRAME && msg.checksum == checksum)
       {
         hardware_publisher->publish_voltage((double)msg.batVoltage / 100.0);
-        hardware_publisher->publish_temp((double)msg.boardTemp / 10.0);;
+        hardware_publisher->publish_temp((double)msg.boardTemp / 10.0);
+        ;
         hardware_publisher->publish_curr(left_wheel, (double)msg.left_dc_curr / 100.0);
         hardware_publisher->publish_curr(right_wheel, (double)msg.right_dc_curr / 100.0);
 
@@ -346,7 +414,7 @@ namespace hoverboard_driver
         hardware_publisher->publish_vel(right_wheel, hw_velocities_[right_wheel]);
 
         // Process encoder values and update odometry
-        on_encoder_update(time,msg.wheelR_cnt, msg.wheelL_cnt);
+        on_encoder_update(time, msg.wheelR_cnt, msg.wheelL_cnt);
       }
       else
       {
@@ -369,14 +437,25 @@ namespace hoverboard_driver
     hardware_publisher->publish_cmd(left_wheel, hw_commands_[left_wheel]);
     hardware_publisher->publish_cmd(right_wheel, hw_commands_[right_wheel]);
 
-     double pid_outputs[2];
-     pid_outputs[0] = pids[0](hw_velocities_[left_wheel], hw_commands_[left_wheel], period);
-     pid_outputs[1] = pids[1](hw_velocities_[left_wheel], hw_commands_[right_wheel], period);
+    // Set PID Parameters
+    pids[0].setParameters(hardware_publisher->pid_config.f, hardware_publisher->pid_config.p,
+                          hardware_publisher->pid_config.i, hardware_publisher->pid_config.d,
+                          hardware_publisher->pid_config.i_clamp_max, hardware_publisher->pid_config.i_clamp_min,
+                          hardware_publisher->pid_config.antiwindup);
+    pids[1].setParameters(hardware_publisher->pid_config.f, hardware_publisher->pid_config.p,
+                          hardware_publisher->pid_config.i, hardware_publisher->pid_config.d,
+                          hardware_publisher->pid_config.i_clamp_max, hardware_publisher->pid_config.i_clamp_min,
+                          hardware_publisher->pid_config.antiwindup);
+
+    // calculate PID values
+    double pid_outputs[2];
+    pid_outputs[0] = pids[0](hw_velocities_[left_wheel], hw_commands_[left_wheel], period);
+    pid_outputs[1] = pids[1](hw_velocities_[left_wheel], hw_commands_[right_wheel], period);
 
     // Convert PID outputs in RAD/S to RPM
-     double set_speed[2] = {
-         pid_outputs[0] / 0.10472,
-         pid_outputs[1] / 0.10472};
+    double set_speed[2] = {
+        pid_outputs[0] / 0.10472,
+        pid_outputs[1] / 0.10472};
 
     // double set_speed[2] = {
     //       joints[0].cmd.data / 0.10472,
@@ -401,7 +480,7 @@ namespace hoverboard_driver
     return hardware_interface::return_type::OK;
   }
 
-  void hoverboard_driver::on_encoder_update(const rclcpp::Time &time,int16_t right, int16_t left)
+  void hoverboard_driver::on_encoder_update(const rclcpp::Time &time, int16_t right, int16_t left)
   {
     double posL = 0.0, posR = 0.0;
 

@@ -35,6 +35,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/float64.hpp"
 #include "std_msgs/msg/bool.hpp"
+#include "rcl_interfaces/msg/set_parameters_result.hpp"
 
 namespace hoverboard_driver
 {
@@ -45,10 +46,10 @@ namespace hoverboard_driver
     right_wheel
   };
 
-  class hoverboard_driver_publisher : public rclcpp::Node
+  class hoverboard_driver_node : public rclcpp::Node
   {
   public:
-    hoverboard_driver_publisher();
+    hoverboard_driver_node();
     void publish_vel(int wheel, double message);
     void publish_pos(int wheel, double message);
     void publish_cmd(int wheel, double message);
@@ -56,6 +57,21 @@ namespace hoverboard_driver
     void publish_curr(int wheel, double message);
     void publish_temp(double message);
     void publish_connected(bool message);
+
+    rcl_interfaces::msg::SetParametersResult parametersCallback(
+        const std::vector<rclcpp::Parameter> &parameters);
+
+    /// @brief PID configuration structure
+    struct
+    {
+      double p;
+      double i;
+      double d;
+      double f;
+      double i_clamp_min;
+      double i_clamp_max;
+      bool antiwindup;
+    } pid_config;
 
   private:
     // Publishers
@@ -66,6 +82,9 @@ namespace hoverboard_driver
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr curr_pub[2];
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr temp_pub;
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr connected_pub;
+
+        // Parameter Callback handle
+    OnSetParametersCallbackHandle::SharedPtr callback_handle_;
   };
 
   class hoverboard_driver : public hardware_interface::SystemInterface
@@ -93,15 +112,15 @@ namespace hoverboard_driver
     hardware_interface::return_type write(
         const rclcpp::Time &time, const rclcpp::Duration &period) override;
 
-    std::shared_ptr<hoverboard_driver_publisher> hardware_publisher; // make the publisher node a member
+    std::shared_ptr<hoverboard_driver_node> hardware_publisher; // make the publisher node a member
   private:
     // Store the command for the simulated robot
     std::vector<double> hw_commands_;
     std::vector<double> hw_positions_;
     std::vector<double> hw_velocities_;
 
-    void protocol_recv(const rclcpp::Time &time,char c);
-    void on_encoder_update(const rclcpp::Time &time,int16_t right, int16_t left);
+    void protocol_recv(const rclcpp::Time &time, char c);
+    void on_encoder_update(const rclcpp::Time &time, int16_t right, int16_t left);
 
     double wheel_radius;
     double max_velocity = 0.0;

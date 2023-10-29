@@ -6,6 +6,9 @@
     <ros2_control name="${name}" type="system">
       <hardware>
         <plugin>hoverboard_driver/hoverboard_driver</plugin>
+        <param name="wheel_radius">0.0825</param>
+        <param name="max_velocity">1.0</param>
+        <param name="device">/dev/ttyUSB1</param>
       </hardware>
       <joint name="${prefix}left_wheel_joint">
         <command_interface name="velocity"/>
