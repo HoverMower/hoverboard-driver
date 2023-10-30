@@ -175,10 +175,10 @@ namespace hoverboard_driver
     {
       return hardware_interface::CallbackReturn::ERROR;
     }
-
+    // read parameter from hoverboard_driver.ros2_control.xacro file
     wheel_radius = std::stod(info_.hardware_parameters["wheel_radius"]);
     max_velocity = std::stod(info_.hardware_parameters["max_velocity"]);
-    port = std::stod(info_.hardware_parameters["device"]);
+    port = info_.hardware_parameters["device"];
     hw_positions_.resize(info_.joints.size(), std::numeric_limits<double>::quiet_NaN());
     hw_velocities_.resize(info_.joints.size(), std::numeric_limits<double>::quiet_NaN());
     hw_commands_.resize(info_.joints.size(), std::numeric_limits<double>::quiet_NaN());
@@ -453,14 +453,14 @@ namespace hoverboard_driver
     pid_outputs[1] = pids[1](hw_velocities_[left_wheel], hw_commands_[right_wheel], period);
 
     // Convert PID outputs in RAD/S to RPM
-    double set_speed[2] = {
-        pid_outputs[0] / 0.10472,
-        pid_outputs[1] / 0.10472};
+    //double set_speed[2] = {
+     //   pid_outputs[0] / 0.10472,
+      //  pid_outputs[1] / 0.10472};
 
-    // double set_speed[2] = {
-    //       joints[0].cmd.data / 0.10472,
-    //     joints[1].cmd.data / 0.10472
-    // };
+     double set_speed[2] = {
+           hw_commands_[left_wheel] / 0.10472,
+           hw_commands_[right_wheel] / 0.10472
+     };
 
     // Calculate steering from difference of left and right
     const double speed = (set_speed[0] + set_speed[1]) / 2.0;

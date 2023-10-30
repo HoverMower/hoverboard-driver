@@ -42,22 +42,54 @@ namespace hoverboard_driver
 
   enum
   {
+    /// @brief left wheel
     left_wheel,
+    /// @brief right wheel
     right_wheel
   };
 
+  /// @brief Helper class to get a node interface. This class is used to build publishers and dynamic parameters
+  /// for hoverboard_driver class.
   class hoverboard_driver_node : public rclcpp::Node
   {
   public:
     hoverboard_driver_node();
+    /// @brief publish velocity data for debugging
+    /// @param wheel left or right wheel
+    /// @param message value to publish
     void publish_vel(int wheel, double message);
+
+    /// @brief publish pose data for debugging
+    /// @param wheel left or right wheel
+    /// @param message value to publish
     void publish_pos(int wheel, double message);
+
+    /// @brief publish command data for debugging
+    /// @param wheel left or right wheel
+    /// @param message value to publish
     void publish_cmd(int wheel, double message);
+
+    /// @brief publish battery voltage
+    /// @param message value to publish
     void publish_voltage(double message);
+
+    /// @brief publish current (power consumption) of motor
+    /// @param wheel left or right wheel
+    /// @param message value to publish
     void publish_curr(int wheel, double message);
+
+    /// @brief publish PCB temperature
+    /// @param message value to publish
     void publish_temp(double message);
+
+
+    /// @brief publish state of PCB (on or off)
+    /// @param message value to publish
     void publish_connected(bool message);
 
+    /// @brief parameter callback method. 
+    /// @param parameters 
+    /// @return 
     rcl_interfaces::msg::SetParametersResult parametersCallback(
         const std::vector<rclcpp::Parameter> &parameters);
 
@@ -87,6 +119,7 @@ namespace hoverboard_driver
     OnSetParametersCallbackHandle::SharedPtr callback_handle_;
   };
 
+  /// @brief Hardware Interface class to communicate with Hoverboard PCB
   class hoverboard_driver : public hardware_interface::SystemInterface
   {
   public:
